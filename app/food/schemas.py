@@ -29,13 +29,40 @@ class SampleCreate(BaseModel):
 
 class TestResultCreate(BaseModel):
     analyte: str = Field(..., min_length=1, max_length=80)
-    method: str = Field(..., min_length=1, max_length=80)
+    method: str = Field(default="", max_length=80)
     value_mg_kg: float = Field(..., ge=0, le=100000)
-    limit_mg_kg: float = Field(..., ge=0, le=100000)
+    # 仅作上报端参考；判定限值一律来自已发布的规则版本，缺失时结果进入待复核。
+    limit_mg_kg: float | None = Field(default=None, ge=0, le=100000)
     unit: str = Field(default="mg/kg", min_length=1, max_length=20)
     lab_operator: str = Field(..., min_length=1, max_length=80)
     tested_at: str = Field(..., min_length=20, max_length=40)
     certificate_no: str = Field(default="", max_length=80)
+
+
+class ReviewDecision(BaseModel):
+    decision: str = Field(..., pattern="^(pass|fail)$")
+    operator: str = Field(..., min_length=1, max_length=80)
+    reason: str = Field(..., min_length=1, max_length=300)
+
+
+class RuleVersionCreate(BaseModel):
+    version_code: str = Field(..., min_length=2, max_length=40)
+    standard_name: str = Field(..., min_length=1, max_length=120)
+    note: str = Field(default="", max_length=300)
+
+    @field_validator("version_code")
+    @classmethod
+    def normalize_code(cls, value: str) -> str:
+        return value.strip().upper()
+
+
+class LimitRuleCreate(BaseModel):
+    category: str = Field(..., min_length=1, max_length=40)
+    analyte: str = Field(..., min_length=1, max_length=80)
+    method: str = Field(default="", max_length=80, description="空字符串表示该类别+检测物的通配方法")
+    limit_mg_kg: float = Field(..., ge=0, le=100000)
+    unit: str = Field(default="mg/kg", min_length=1, max_length=20)
+    note: str = Field(default="", max_length=300)
 
 
 class ShipmentCreate(BaseModel):
@@ -59,4 +86,3 @@ class RiskDecision(BaseModel):
     decision: str = Field(..., pattern="^(release|hold|recall|destroy)$")
     reason: str = Field(..., min_length=1, max_length=300)
     operator: str = Field(..., min_length=1, max_length=80)
-
